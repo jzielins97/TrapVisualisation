@@ -12,7 +12,7 @@ class TTrap():
     dx:float=0.5 # distance between position points
     __TRAP_CONFIGS:{str:{str:[str]}}={} # configurations of the trap
     __POTENTIAL_MATRIX:[[float]]=[[]] # matrix for calculating the final potential
-    __DMA_DUMMY:{str:[[float]]}={} # internal memory for trapping sequences
+    __MEMORY:{str:[[float]]}={} # internal memory for trapping sequences
 
 
     def __init__(self,position:float=0.0):
@@ -83,9 +83,10 @@ class TTrap():
         else:
             for electrode in electrodes:
                 self.SetElectrodeV(electrode,0)
-
-    def DetermineVoltageForRamp(self, V_start, V_end, steps, i):
-        return (V_end - V_start)*(i+1)/steps
+    
+    def DetermineVoltageForRamp(self, voltage_start, voltage_end, steps, i) -> float:
+        voltage = voltage_start + (i / (steps - 1)) * (voltage_end - voltage_start)
+        return voltage
 
     ########################## log functions ##########################
 
@@ -139,7 +140,7 @@ class TTrap():
                         start_electrode = start_electrode+1
                 # check if the value doesn"t extend the limit
                 # # set new voltage for the electrode
-                self.SetElectrodeV(electrodes[electrode],V[electrode])
+                # self.SetElectrodeV(electrodes[electrode],V[electrode])
                 # delay(10*ns)            
                 
 
@@ -156,21 +157,19 @@ class TTrap():
                 stop_electrode = stop_electrode + 1
             
             iteration = iteration+1
-            V_animate.append(self.GetTotalV())
-        self.__DMA_DUMMY[handle_name]=V_animate
+            V_animate.append([{'name':electrode,'V':V[j]} for j,electrode in enumerate(electrodes)])
+        self.__MEMORY[handle_name]=V_animate
     
     def FastReshapeMalmberg(self, trap_name, Vinlet, Vfloor, Voutlet, handle_name=''):
         inlet = self.DefineTrapConfig(trap_name, "inlet")
-        for electrode in inlet:
-            self.SetElectrodeV(electrode,Vinlet)
         floor = self.DefineTrapConfig(trap_name, "floor")
-        for electrode in floor:
-            self.SetElectrodeV(electrode,Vfloor)
         outlet = self.DefineTrapConfig(trap_name, "outlet")
-        for electrode in outlet:
-            self.SetElectrodeV(electrode,Voutlet)
+
+        V_inlet_list = [{'name':electrode,'V':Vinlet} for electrode in inlet]
+        V_floor_list = [{'name':electrode,'V':Vfloor} for electrode in floor]
+        V_outlet_list = [{'name':electrode,'V':Voutlet} for electrode in outlet]
     
-        self.__DMA_DUMMY[handle_name]=[self.GetTotalV()]
+        self.__MEMORY[handle_name]=[V_inlet_list + V_floor_list + V_outlet_list]
 
     def SlowReshapeMalmberg(self, trap_name, Vinlet_start, Vinlet_end, Vfloor_start, Vfloor_end, Voutlet_start, Voutlet_end, duration, steps, handle_name=''):
         inlet = self.DefineTrapConfig(trap_name, "inlet")
@@ -179,36 +178,32 @@ class TTrap():
 
         V = []
         for i in range(steps):
-            for electrode in inlet:
-                self.SetElectrodeV(electrode,Vinlet_start + self.DetermineVoltageForRamp(Vinlet_start,Vinlet_end,steps,i))
-            for electrode in floor:
-                self.SetElectrodeV(electrode,Vfloor_start + self.DetermineVoltageForRamp(Vfloor_start,Vfloor_end,steps,i))
-            for electrode in outlet:
-                self.SetElectrodeV(electrode,Voutlet_start + self.DetermineVoltageForRamp(Voutlet_start,Voutlet_end,steps,i))
-            V.append(self.GetTotalV())
-        self.__DMA_DUMMY[handle_name]=V
+            V_inlet = [{'name':electrode,'V':self.DetermineVoltageForRamp(Vinlet_start,Vinlet_end,steps,i)} for electrode in inlet]
+            V_floor = [{'name':electrode,'V':self.DetermineVoltageForRamp(Vfloor_start,Vfloor_end,steps,i)} for electrode in floor]
+            V_outlet = [{'name':electrode,'V':self.DetermineVoltageForRamp(Voutlet_start,Voutlet_end,steps,i)} for electrode in outlet]
+            V.append(V_inlet + V_floor + V_outlet)
+        self.__MEMORY[handle_name]=V
 
     def FastReshape(self, trap_name, config_name, V, handle_name='')->{str:[[float]]}:
         electrode_names = self.DefineTrapConfig(trap_name, config_name)
-        for electrode in electrode_names:
-            self.SetElectrodeV(electrode,V)
-        self.__DMA_DUMMY[handle_name] = [self.GetTotalV()]
+        V = [[{'name':electrode,'V':V} for electrode in electrode_names]]
+        self.__MEMORY[handle_name] = V
 
     def SlowReshape(self, trap_name, config_name, Vstart, Vend, duration, steps, handle_name='')->{str:[[float]]}:
         # determined_delay = self.Determinedt(duration, steps)
         electrode_names = self.DefineTrapConfig(trap_name, config_name)
         V = []
         for i in range(steps):
-            for electrode in electrode_names:
-                self.SetElectrodeV(electrode,Vstart + self.DetermineVoltageForRamp(Vstart, Vend, steps, i))
-            V.append(self.GetTotalV())
-        self.__DMA_DUMMY[handle_name]=V
+            V.append([{'name':electrode,'V':self.DetermineVoltageForRamp(Vstart, Vend, steps, i)}for electrode in electrode_names])
+        self.__MEMORY[handle_name]=V
 
 
     ########################## animation functions ##########################
 
-    def GetFinalPotentials(self, i, handle_name:str):
-        V = self.__POTENTIAL_MATRIX.T @ self.__DMA_DUMMY[handle_name][i]
+    def dma_playback(self, i, handle_name:str):
+        for electrode_pair in self.__MEMORY[handle_name][i]:
+            self.SetElectrodeV(electrode_pair['name'],electrode_pair['V'])
+        V = self.__POTENTIAL_MATRIX.T @ self.GetTotalV()
         return V
         # totalV = [self.__POTENTIAL_MATRIX.T @ V for V in self.DMA_DUMMY[handle_name]]
         # for _ in range(frames_to_wait):
@@ -216,7 +211,7 @@ class TTrap():
         # return totalV
 
     def GetHandleDuration(self,handle_name):
-        return len(self.__DMA_DUMMY[handle_name])
+        return len(self.__MEMORY[handle_name])
 
     def GetLabelPositions(self):
         return [int((electrode.GetElectrodeCenter()-self.position)/self.dx) for electrode in self.electrodes]
