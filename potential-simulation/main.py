@@ -1,14 +1,11 @@
 import trap
-from IPython import display
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
-import numpy as np
+from animation import AnimationObject
 
 
 def PrepareHVTrapShaping(AEgIS_trap:trap.TTrap):
-    AEgIS_trap.FastReshapeMalmberg("nested_trap", -14000, 0, -14000, "HV_ON")
-    AEgIS_trap.FastReshape("nested_trap", "inlet",0,"HV3_OFF")
-    AEgIS_trap.SlowReshape("nested_trap", "outlet",-14000,0,None,10,"HV1_OFF" )
+    AEgIS_trap.FastReshapeMalmberg("HV_trap", -14000, 0, -14000, "HV_ON")
+    AEgIS_trap.FastReshape("HV_trap", "inlet",0,"HV3_OFF")
+    AEgIS_trap.SlowReshape("HV_trap", "outlet",-14000,0,None,10,"HV1_OFF" )
 
 def PrepareNestedTrapShaping(AEgIS_Trap:trap.TTrap, TrapFloor, TrapWall, SqueezeTime, TrapType, SqueezeType):
         print("Preparing DMA for nested traps ...")
@@ -89,51 +86,22 @@ if __name__ == '__main__':
     Vfloor = -160
     steps = 100
 
-    # AEgIS_trap.ResetV(Vfloor,Vwall)
-
     AEgIS_trap.SetEverythingToZero()
     
-    V_animate = [AEgIS_trap.GetTotalV()]
     PrepareHVTrapShaping(AEgIS_trap)
-    PrepareNestedTrapShaping_SqueezeRaise(AEgIS_trap, TrapFloor=Vfloor, TrapWall=Vwall, SqueezeTime=10, SqueezeType="2E_MCP", RaiseTime=10)
-    
+    PrepareNestedTrapShaping_SqueezeRaise(AEgIS_trap, TrapFloor=Vfloor, TrapWall=Vwall, SqueezeTime=10, SqueezeType="2E_MCP_flat", RaiseTime=10)
 
-    V_animate = AEgIS_trap.playback_handle("HV_ON")
-    V_animate += AEgIS_trap.playback_handle("HV3_OFF")
-    V_animate += AEgIS_trap.playback_handle("HV1_OFF")
+    ani = AnimationObject(AEgIS_trap)
+    ani.add_sequence("HV_ON")
+    ani.add_sequence("NestedTrap_On")
+    ani.add_sequence("HV3_OFF")
+    ani.add_sequence("HV1_OFF")
+    ani.add_sequence("NestedTrap_SR1")
+    ani.add_sequence("NestedTrap_SR2")
+    ani.add_sequence("NestedTrap_SR3")
 
-    fig, ax = plt.subplots(figsize=(18, 10))
-
-    # ax.clear()
-    # ax.set_ylim(-200,200)
-    # ax.set_xticks(AEgIS_trap.GetLabelPositions())
-    # ax.set_xticklabels(AEgIS_trap.GetElectrodeNames())
-    # ax.set_xticks(AEgIS_trap.GetMinorLabelPositions(),minor=True)
-    # ax.grid(axis='x',which='minor',linestyle = "dashed",linewidth = 0.5,alpha=0.5)
-    # ax.tick_params(which = "minor", bottom = False, left = False)
-    # plt.xticks(rotation=45)
-    # ax.set_xlabel("electrode")
-    # ax.set_ylabel("voltage [V]")
-    # line = ax.stairs(AEgIS_trap.GetTotalV())
-
-    def animate(i):
-        ax.clear()
-        ax.set_ylim(-300,300)
-        ax.set_xticks(AEgIS_trap.GetLabelPositions())
-        ax.set_xticklabels(AEgIS_trap.GetElectrodeNames())
-        ax.set_xticks(AEgIS_trap.GetMinorLabelPositions(),minor=True)
-        ax.grid(axis='x',which='minor',linestyle = "dashed",linewidth = 0.5,alpha=0.5)
-        ax.tick_params(which = "minor", bottom = False, left = False)
-        plt.xticks(rotation=45)
-        ax.set_xlabel("electrode")
-        ax.set_ylabel("voltage [V]")
-        line = ax.stairs(V_animate[i])
-        return line, 
+    ani.animate(save=False)
 
 
-    ani = FuncAnimation(fig, animate, interval=40, blit=True, repeat=True, frames=len(V_animate),repeat_delay=500)
-    print("Animation prepared")   
-    plt.show()
-    # ani.save("squeeze_MCP.gif", dpi=150, writer=PillowWriter(fps=steps))
 
 

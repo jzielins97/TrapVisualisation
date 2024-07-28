@@ -1,57 +1,23 @@
 import numpy as np
 import json
 import os
+from electrode import TElectrode
+
+class TTrap():
+    electrodes:[TElectrode]=[] # list of all electrodes
+    electrode_mapping:{str:int}={} # mapping for quick access to electrode
+    position:float=0 # inisitla position of the trap
+    length:float=0 # length of the trap
+    segments:int=2048 # total number of positions points 
+    dx:float=0.5 # distance between position points
+    __TRAP_CONFIGS:{str:{str:[str]}}={} # configurations of the trap
+    __POTENTIAL_MATRIX:[[float]]=[[]] # matrix for calculating the final potential
+    __DMA_DUMMY:{str:[[float]]}={} # internal memory for trapping sequences
 
 
-class TElectrode:
-    name:str
-    position:[float] = [0,0] # in mm
-    length:float = 30.0 # mm
-    potential:float = 0 # V
-    radius:float = 15 # mm
-
-    def __init__(self, name:str, position:float,length:float):
-        self.name = name
-        self.position = [position,position+length]
-        self.length = length
-
-
-    def __str__(self)->str:
-        return f'Electrode {self.name:5} with {self.potential:4.2e} V from {self.position[0]:4.2E} to {self.position[1]:4.2E}'
-    
-    def GetName(self):
-        return self.name
-    
-    def GetElectrodeStart(self)->float:
-        return self.position[0]
-    
-    def GetElectrodeCenter(self)->float:
-        return (self.position[1] + self.position[0])/2.0
-    
-    def GetElectrodeEnd(self):
-        return self.position[1]
-    
-    def GetPotential(self)->float:
-        return self.potential #  / np.sqrt((self.GetElectrodeCenter() - position)**2 + self.radius**2)
-
-    def SetPotential(self,potential)->None:
-        self.potential = potential
-
-
-class TTrap:
-    electrodes:[TElectrode]
-    electrode_mapping:{str:int}
-    position:float
-    length:float
-    segments:int
-    __TRAP_CONFIGS:{str:{str:[str]}}
-    __POTENTIAL_MATRIX:[[float]]
-    DMA_DUMMY:{str:[[float]]}={}
-
-
-    def __init__(self,position:float=0.0,segmentation:int=None,dx:float=0.5):
+    def __init__(self,position:float=0.0):
         self.position = position
-        self.electrodes = []
+        self.electrodes:list(TElectrode) = []
 
         script_dir = os.path.dirname(__file__)
         trap_setup_path = os.path.join(script_dir, "trap_setup.json")
@@ -68,7 +34,7 @@ class TTrap:
             self.__POTENTIAL_MATRIX = np.array([[float(value) for value in l.strip().split("\t")[1:2049]] for l in f.readlines()])   
 
         self.electrodes.append(TElectrode("C0",position+0.0,13.5))
-        self.electrodes.append(TElectrode("HC1",position+23.5,40.0))
+        self.electrodes.append(TElectrode("HV1",position+23.5,40.0))
         self.electrodes.append(TElectrode("C1",position+73.5,27.5))
         for i in range(2,6):
             self.electrodes.append(TElectrode(f"C{i}",position+101.0 + (i-2)*30,30))
@@ -92,25 +58,12 @@ class TTrap:
 
         self.length = self.electrodes[-1].GetElectrodeEnd() - self.electrodes[0].GetElectrodeStart()
 
-        if segmentation is None:
-            if int(self.length / dx) * dx != self.length:
-                print(f'Warning: cannot nicely divide the trap into segments of length {dx} mm. Using 0.5 mm instead')
-                dx = 0.5
-            self.segments = int(self.length/dx)
-        else:
-            self.segments = segmentation
-
         self.electrode_mapping = {}
+        
         for i,e in enumerate(self.electrodes):
             self.electrode_mapping[e.GetName()] = i
 
-        # self.DMA_DUMMY={}
-
-    def Print(self):
-        print('Trap configuration:')
-        for electrode in self.electrodes:
-            print(f'{electrode}')
-
+    ########################## voltage functions ##########################
     def SetElectrodeV(self,electrode:str,V:float):
         self.electrodes[self.electrode_mapping[electrode]].SetPotential(V)
 
@@ -123,9 +76,6 @@ class TTrap:
         # print(self.__POTENTIAL_MATRIX.T.shape)
         return V
     
-    def playback_handle(self, handle_name:str):
-        return [self.__POTENTIAL_MATRIX.T @ V for V in self.DMA_DUMMY[handle_name]]
-
     def SetEverythingToZero(self, electrodes:[str]=None)->None:
         if electrodes is None:
             for i in range(1,len(self.electrodes)-1):
@@ -134,18 +84,19 @@ class TTrap:
             for electrode in electrodes:
                 self.SetElectrodeV(electrode,0)
 
-    def GetLabelPositions(self):
-        dx = self.length/self.segments
-        return [int((electrode.GetElectrodeCenter()-self.position)/dx) for electrode in self.electrodes]
-    
-    def GetMinorLabelPositions(self):
-        dx = self.length/self.segments
-        ticks = []
-        for electrode in self.electrodes:
-            ticks.append((electrode.GetElectrodeStart()-self.position)/dx)
-            ticks.append((electrode.GetElectrodeEnd()-self.position)/dx)
-        return ticks
+    def DetermineVoltageForRamp(self, V_start, V_end, steps, i):
+        return (V_end - V_start)*(i+1)/steps
 
+    ########################## log functions ##########################
+
+    def Print(self):
+        print('Trap configuration:')
+        for electrode in self.electrodes:
+            print(f'{electrode}')
+
+    
+    ########################## trapping functions ##########################
+    
     def DefineTrapConfig(self, trap_name:str, config_name:str) -> [str]:
         electrodes = ["ERROR"]
         try:
@@ -153,12 +104,6 @@ class TTrap:
         except ValueError:
             print("This trap does not seem to be defined! Please provide a valid trap name!")
         return electrodes
-    
-    def GetElectrodeNames(self):
-        return list(self.electrode_mapping.keys())
-    
-    def DetermineVoltageForRamp(self, V_start, V_end, steps, i):
-        return (V_end - V_start)*i/steps
     
     def NiceSlowReshape(self, trap_name, config_name, Vstart, Vend, duration, steps, handle_name):
         electrodes = self.DefineTrapConfig(trap_name, config_name)
@@ -212,7 +157,7 @@ class TTrap:
             
             iteration = iteration+1
             V_animate.append(self.GetTotalV())
-        self.DMA_DUMMY[handle_name]=V_animate
+        self.__DMA_DUMMY[handle_name]=V_animate
     
     def FastReshapeMalmberg(self, trap_name, Vinlet, Vfloor, Voutlet, handle_name=''):
         inlet = self.DefineTrapConfig(trap_name, "inlet")
@@ -225,7 +170,7 @@ class TTrap:
         for electrode in outlet:
             self.SetElectrodeV(electrode,Voutlet)
     
-        self.DMA_DUMMY[handle_name]=[self.GetTotalV()]
+        self.__DMA_DUMMY[handle_name]=[self.GetTotalV()]
 
     def SlowReshapeMalmberg(self, trap_name, Vinlet_start, Vinlet_end, Vfloor_start, Vfloor_end, Voutlet_start, Voutlet_end, duration, steps, handle_name=''):
         inlet = self.DefineTrapConfig(trap_name, "inlet")
@@ -235,19 +180,19 @@ class TTrap:
         V = []
         for i in range(steps):
             for electrode in inlet:
-                self.SetElectrodeV(electrode,self.DetermineVoltageForRamp(Vinlet_start,Vinlet_end,steps,i))
+                self.SetElectrodeV(electrode,Vinlet_start + self.DetermineVoltageForRamp(Vinlet_start,Vinlet_end,steps,i))
             for electrode in floor:
-                self.SetElectrodeV(electrode,self.DetermineVoltageForRamp(Vfloor_start,Vfloor_end,steps,i))
+                self.SetElectrodeV(electrode,Vfloor_start + self.DetermineVoltageForRamp(Vfloor_start,Vfloor_end,steps,i))
             for electrode in outlet:
-                self.SetElectrodeV(electrode,self.DetermineVoltageForRamp(Voutlet_start,Voutlet_end,steps,i))
+                self.SetElectrodeV(electrode,Voutlet_start + self.DetermineVoltageForRamp(Voutlet_start,Voutlet_end,steps,i))
             V.append(self.GetTotalV())
-        self.DMA_DUMMY[handle_name]=V
+        self.__DMA_DUMMY[handle_name]=V
 
     def FastReshape(self, trap_name, config_name, V, handle_name='')->{str:[[float]]}:
         electrode_names = self.DefineTrapConfig(trap_name, config_name)
         for electrode in electrode_names:
             self.SetElectrodeV(electrode,V)
-        self.DMA_DUMMY[handle_name] = [self.GetTotalV()]
+        self.__DMA_DUMMY[handle_name] = [self.GetTotalV()]
 
     def SlowReshape(self, trap_name, config_name, Vstart, Vend, duration, steps, handle_name='')->{str:[[float]]}:
         # determined_delay = self.Determinedt(duration, steps)
@@ -255,8 +200,35 @@ class TTrap:
         V = []
         for i in range(steps):
             for electrode in electrode_names:
-                self.SetElectrodeV(electrode,self.DetermineVoltageForRamp(Vstart, Vend, steps, i))
+                self.SetElectrodeV(electrode,Vstart + self.DetermineVoltageForRamp(Vstart, Vend, steps, i))
             V.append(self.GetTotalV())
-        self.DMA_DUMMY[handle_name]=V
+        self.__DMA_DUMMY[handle_name]=V
+
+
+    ########################## animation functions ##########################
+
+    def GetFinalPotentials(self, i, handle_name:str):
+        V = self.__POTENTIAL_MATRIX.T @ self.__DMA_DUMMY[handle_name][i]
+        return V
+        # totalV = [self.__POTENTIAL_MATRIX.T @ V for V in self.DMA_DUMMY[handle_name]]
+        # for _ in range(frames_to_wait):
+        #     totalV.append(self.__POTENTIAL_MATRIX.T @ self.DMA_DUMMY[handle_name][-1])
+        # return totalV
+
+    def GetHandleDuration(self,handle_name):
+        return len(self.__DMA_DUMMY[handle_name])
+
+    def GetLabelPositions(self):
+        return [int((electrode.GetElectrodeCenter()-self.position)/self.dx) for electrode in self.electrodes]
+    
+    def GetMinorLabelPositions(self):
+        ticks = []
+        for electrode in self.electrodes:
+            ticks.append((electrode.GetElectrodeStart()-self.position)/self.dx)
+            ticks.append((electrode.GetElectrodeEnd()-self.position)/self.dx)
+        return ticks
+    
+    def GetElectrodeNames(self):
+        return list(self.electrode_mapping.keys())
 
 
