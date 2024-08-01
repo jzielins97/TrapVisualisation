@@ -64,6 +64,14 @@ def PrepareNestedTrapShaping_SqueezeRaise(AEgIS_Trap:trap.TTrap, TrapFloor, Trap
         elif SqueezeType == '2E_MCP_flat':
             AEgIS_Trap.SlowReshape("nested_trap", "2E_MCP", -TrapWall, TrapWall, SqueezeTime, 100, "NestedTrap_SR2")
             AEgIS_Trap.SlowReshape("nested_trap", "2E_MCP_SR3", -TrapWall, TrapFloor, RaiseTime, 100, "NestedTrap_SR3")
+        elif SqueezeType == '2E_MCP_flat':
+            AEgIS_Trap.SlowReshape("nested_trap", "2E_MCP", -TrapWall, TrapWall, SqueezeTime, 100, "NestedTrap_SR2")
+            AEgIS_Trap.SlowReshape("nested_trap", "2E_MCP_SR3", -TrapWall, TrapFloor, RaiseTime, 100, "NestedTrap_SR3")
+            AEgIS_Trap.SlowReshape("nested_trap", "2E_MCP_SR4", TrapWall, TrapFloor, RaiseTime, 100, "NestedTrap_SR4")
+        elif SqueezeType == 'MIDDLE_flat':
+            AEgIS_Trap.SlowReshape("symetric_nested_trap", "squeeze", -TrapWall, TrapWall, SqueezeTime, 100, "NestedTrap_SR2")
+            AEgIS_Trap.SlowReshape("symetric_nested_trap", "inner_floor", -TrapWall, TrapFloor, RaiseTime, 100, "NestedTrap_SR3")
+            AEgIS_Trap.FastReshape("symetric_nested_trap", "pre-dump", 0, "NestedTrap_SR4")
         elif SqueezeType == '2E_ELENA':
             AEgIS_Trap.NiceSlowReshape("nested_trap", "2E_ELENA_start", -TrapWall, TrapWall, SqueezeTime, 100, "NestedTrap_SR2")
             AEgIS_Trap.SlowReshape("nested_trap", "2E_ELENA_end", TrapWall, 0.0, 1.0, 100, "NestedTrap_SR3")
@@ -83,13 +91,13 @@ if __name__ == '__main__':
     AEgIS_trap.Print()
 
     Vwall = 160
-    Vfloor = -160
+    Vfloor = 90
     steps = 100
 
     AEgIS_trap.SetEverythingToZero()
     
     PrepareHVTrapShaping(AEgIS_trap)
-    PrepareNestedTrapShaping_SqueezeRaise(AEgIS_trap, TrapFloor=Vfloor, TrapWall=Vwall, SqueezeTime=10, SqueezeType="2E_MCP_flat", RaiseTime=10)
+    PrepareNestedTrapShaping_SqueezeRaise(AEgIS_trap, TrapFloor=Vfloor, TrapWall=Vwall, SqueezeTime=10, SqueezeType="MIDDLE_flat", RaiseTime=10)
 
     ani = AnimationObject(AEgIS_trap)
     ani.add_sequence("HV_ON")
@@ -99,8 +107,9 @@ if __name__ == '__main__':
     ani.add_sequence("NestedTrap_SR1")
     ani.add_sequence("NestedTrap_SR2")
     ani.add_sequence("NestedTrap_SR3")
+    ani.add_sequence("NestedTrap_SR4")
 
-    ani.animate(save=False)
+    ani.animate(save=True)
 
 
 

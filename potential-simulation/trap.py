@@ -31,7 +31,7 @@ class TTrap():
         
         potential_matrix_path = os.path.join(script_dir, "ElectrodesPotentialMap.txt")
         with open(potential_matrix_path, 'r') as f:
-            self.__POTENTIAL_MATRIX = np.array([[float(value) for value in l.strip().split("\t")[1:2049]] for l in f.readlines()])   
+            self.__POTENTIAL_MATRIX = np.array([[float(value) for value in l.strip().split("\t")[1:2049]] if l.strip().split("\t")[0] != 'C1' else [0]*2048 for l in f.readlines()])   
 
         self.electrodes.append(TElectrode("C0",position+0.0,13.5))
         self.electrodes.append(TElectrode("HV1",position+23.5,40.0))
@@ -196,6 +196,12 @@ class TTrap():
         for i in range(steps):
             V.append([{'name':electrode,'V':self.DetermineVoltageForRamp(Vstart, Vend, steps, i)}for electrode in electrode_names])
         self.__MEMORY[handle_name]=V
+
+    def SymetricSqueeze(self,trap_name,config_name,Vstart,Vend,duration,steps,handle_name=''):
+        electrode_names = self.DefineTrapConfig(trap_name,config_name)
+        V = []
+        for i in range(steps):
+            V.append([{'name':electrode,'V':self.DetermineVoltageForRamp(Vstart,Vend,steps,i)} for electrode in electrode_names])
 
 
     ########################## animation functions ##########################

@@ -1,19 +1,10 @@
-trap_name='2E_MCP'
-Vinlet=10.0
-Vfloor=2
-Voutlet=10
-handle_name='handle'
+import numpy as np
+import os
 
-unique_key1 = handle_name + "_" + trap_name + str(Vinlet) + str(Vfloor) + str(Voutlet)
-print(unique_key1)
+script_dir = os.path.dirname(__file__)
+potential_matrix_path = os.path.join(script_dir,"potential-simulation", "ElectrodesPotentialMap.txt")
+with open(potential_matrix_path, 'r') as f:
+    __POTENTIAL_MATRIX = np.array([[float(value) for value in l.strip().split("\t")[1:2049]] if l.strip().split("\t")[0] != 'C1' else [0]*2048 for l in f.readlines()])
 
-trap_name='2E_MCP'
-Vinlet=1
-Vfloor=0.02
-Voutlet=10
-handle_name='handle'
+print(__POTENTIAL_MATRIX)
 
-unique_key2 = handle_name + "_" + trap_name + str(Vinlet) + str(Vfloor) + str(Voutlet)
-print(unique_key2)
-
-print(f'Same={unique_key1==unique_key2}')
