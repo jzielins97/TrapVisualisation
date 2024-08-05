@@ -95,9 +95,41 @@ class TTrap():
         for electrode in self.electrodes:
             print(f'{electrode}')
 
+
+    ########################## animation functions ##########################
+
+    def dma_playback(self, i, handle_name:str):
+        for electrode_pair in self.__MEMORY[handle_name][i]:
+            self.SetElectrodeV(electrode_pair['name'],electrode_pair['V'])
+        V = self.__POTENTIAL_MATRIX.T @ self.GetTotalV()
+        return V
+        # totalV = [self.__POTENTIAL_MATRIX.T @ V for V in self.DMA_DUMMY[handle_name]]
+        # for _ in range(frames_to_wait):
+        #     totalV.append(self.__POTENTIAL_MATRIX.T @ self.DMA_DUMMY[handle_name][-1])
+        # return totalV
+
+    def GetHandleDuration(self,handle_name):
+        return len(self.__MEMORY[handle_name])
+
+    def GetLabelPositions(self):
+        return [int((electrode.GetElectrodeCenter()-self.position)/self.dx) for electrode in self.electrodes]
     
+    def GetMinorLabelPositions(self):
+        ticks = []
+        for electrode in self.electrodes:
+            ticks.append((electrode.GetElectrodeStart()-self.position)/self.dx)
+            ticks.append((electrode.GetElectrodeEnd()-self.position)/self.dx)
+        return ticks
+    
+    def GetElectrodeNames(self):
+        return list(self.electrode_mapping.keys())
+
+
     ########################## trapping functions ##########################
-    
+    def Calculate_mu(self, electrode, voltage):
+        # this function is needed to make smooth transmition between kasli-code
+        return voltage
+
     def DefineTrapConfig(self, trap_name:str, config_name:str) -> [str]:
         electrodes = ["ERROR"]
         try:
@@ -192,44 +224,19 @@ class TTrap():
     def SlowReshape(self, trap_name, config_name, Vstart, Vend, duration, steps, handle_name='')->{str:[[float]]}:
         # determined_delay = self.Determinedt(duration, steps)
         electrode_names = self.DefineTrapConfig(trap_name, config_name)
-        V = []
-        for i in range(steps):
-            V.append([{'name':electrode,'V':self.DetermineVoltageForRamp(Vstart, Vend, steps, i)}for electrode in electrode_names])
+        V = [[{'name':electrode,'V':self.DetermineVoltageForRamp(Vstart, Vend, steps, i)}for electrode in electrode_names] for i in range(steps)]
         self.__MEMORY[handle_name]=V
 
-    def SymetricSqueeze(self,trap_name,config_name,Vstart,Vend,duration,steps,handle_name=''):
-        electrode_names = self.DefineTrapConfig(trap_name,config_name)
-        V = []
-        for i in range(steps):
-            V.append([{'name':electrode,'V':self.DetermineVoltageForRamp(Vstart,Vend,steps,i)} for electrode in electrode_names])
-
-
-    ########################## animation functions ##########################
-
-    def dma_playback(self, i, handle_name:str):
-        for electrode_pair in self.__MEMORY[handle_name][i]:
-            self.SetElectrodeV(electrode_pair['name'],electrode_pair['V'])
-        V = self.__POTENTIAL_MATRIX.T @ self.GetTotalV()
-        return V
-        # totalV = [self.__POTENTIAL_MATRIX.T @ V for V in self.DMA_DUMMY[handle_name]]
-        # for _ in range(frames_to_wait):
-        #     totalV.append(self.__POTENTIAL_MATRIX.T @ self.DMA_DUMMY[handle_name][-1])
-        # return totalV
-
-    def GetHandleDuration(self,handle_name):
-        return len(self.__MEMORY[handle_name])
-
-    def GetLabelPositions(self):
-        return [int((electrode.GetElectrodeCenter()-self.position)/self.dx) for electrode in self.electrodes]
-    
-    def GetMinorLabelPositions(self):
-        ticks = []
-        for electrode in self.electrodes:
-            ticks.append((electrode.GetElectrodeStart()-self.position)/self.dx)
-            ticks.append((electrode.GetElectrodeEnd()-self.position)/self.dx)
-        return ticks
-    
-    def GetElectrodeNames(self):
-        return list(self.electrode_mapping.keys())
-
-
+    def Reshape_TemperatureMeasurement(self, electrode, Vstart, Vend, duration, handle_name):
+        mu_start = self.Calculate_mu(electrode, Vstart)
+        mu_end = self.Calculate_mu(electrode, Vend)
+        mu_difference = mu_end - mu_start
+        step_direction = 0
+        if mu_difference > 0:
+            step_direction = 1
+        elif mu_difference < 0:
+            step_direction = -1
+        else:
+            print("The difference between start and end is 0. I can't do much reshaping with that, can I?")
+        V = [[{'name':e,'V':self.DetermineVoltageForRamp(Vstart, Vend, 10, i)}for e in electrode] for i in range(10)]
+        self.__MEMORY[handle_name]=V
