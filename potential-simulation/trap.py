@@ -30,8 +30,9 @@ class TTrap():
 
         
         potential_matrix_path = os.path.join(script_dir, "ElectrodesPotentialMap.txt")
+        GROUNDED_ELECTRODES = ['C1'] # ,'C16','C17'
         with open(potential_matrix_path, 'r') as f:
-            self.__POTENTIAL_MATRIX = np.array([[float(value) for value in l.strip().split("\t")[1:2049]] if l.strip().split("\t")[0] != 'C1' else [0]*2048 for l in f.readlines()])   
+            self.__POTENTIAL_MATRIX = np.array([[float(value) for value in l.strip().split("\t")[1:2049]] if l.strip().split("\t")[0] not in  GROUNDED_ELECTRODES else [0]*2048 for l in f.readlines()])   
 
         self.electrodes.append(TElectrode("C0",position+0.0,13.5))
         self.electrodes.append(TElectrode("HV1",position+23.5,40.0))
@@ -101,15 +102,21 @@ class TTrap():
     def dma_playback(self, i, handle_name:str):
         for electrode_pair in self.__MEMORY[handle_name][i]:
             self.SetElectrodeV(electrode_pair['name'],electrode_pair['V'])
-        V = self.__POTENTIAL_MATRIX.T @ self.GetTotalV()
+        V = self.get_final_V
         return V
         # totalV = [self.__POTENTIAL_MATRIX.T @ V for V in self.DMA_DUMMY[handle_name]]
         # for _ in range(frames_to_wait):
         #     totalV.append(self.__POTENTIAL_MATRIX.T @ self.DMA_DUMMY[handle_name][-1])
         # return totalV
+    
+    def get_final_V(self):
+        return self.__POTENTIAL_MATRIX.T @ self.GetTotalV()
 
     def GetHandleDuration(self,handle_name):
         return len(self.__MEMORY[handle_name])
+
+    def GetElectrodePositions(self):
+        return [electrode.GetElectrodeCenter() for electrode in self.electrodes]
 
     def GetLabelPositions(self):
         return [int((electrode.GetElectrodeCenter()-self.position)/self.dx) for electrode in self.electrodes]
@@ -123,6 +130,9 @@ class TTrap():
     
     def GetElectrodeNames(self):
         return list(self.electrode_mapping.keys())
+    
+    def GetElectrodePosition(self,electrode:str):
+        return self.electrodes[self.electrode_mapping[electrode]].GetElectrodeCenter()
 
 
     ########################## trapping functions ##########################

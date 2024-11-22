@@ -62,6 +62,24 @@ class AnimationObject:
         if show:
             plt.show()
         return ani
+    
+    def plot_current_state(self):
+        self.ax.clear()
+        self.ax.set_xticks(self.labels_positions)
+        self.ax.set_xticklabels(self.labels)
+        self.ax.set_xticks(self.minor_labels_positions,minor=True)
+        self.ax.grid(axis='x',which='minor',linestyle = "dashed",linewidth = 0.5,alpha=0.5)
+        self.ax.tick_params(which = "minor", bottom = False, left = False)
+        self.ax.set_xlabel("electrode")
+        self.ax.set_ylabel("voltage [V]") 
+        self.ax.set_ylim(-500,500)
+        # self.title.set_text()
+        # self.ax.text(1000,450, f"{i}:{self.trapping_sequence[i]['iteration']}:{self.trapping_sequence[i]['name']}")
+        # self.ax.set_title()
+        self.ax.stairs(self.trap.get_final_V())
+        plt.xticks(rotation=45)  
+
+        plt.show()
         
     
     def add_sequence(self,handle_name:str):
