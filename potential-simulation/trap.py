@@ -65,7 +65,7 @@ class TTrap():
             self.electrode_mapping[e.GetName()] = i
 
     ########################## voltage functions ##########################
-    def SetElectrodeV(self,electrode:str,V:float):
+    def SetElectrodeV(self,electrode:str,V:float) -> None:
         self.electrodes[self.electrode_mapping[electrode]].SetPotential(V)
 
     def GetElectrodeV(self,electrode:str)->float:
@@ -91,7 +91,7 @@ class TTrap():
 
     ########################## log functions ##########################
 
-    def Print(self):
+    def Print(self) -> None:
         print('Trap configuration:')
         for electrode in self.electrodes:
             print(f'{electrode}')
@@ -99,7 +99,7 @@ class TTrap():
 
     ########################## animation functions ##########################
 
-    def dma_playback(self, i, handle_name:str):
+    def dma_playback(self, i, handle_name:str) -> [float]:
         for electrode_pair in self.__MEMORY[handle_name][i]:
             self.SetElectrodeV(electrode_pair['name'],electrode_pair['V'])
         V = self.get_final_V
@@ -109,30 +109,34 @@ class TTrap():
         #     totalV.append(self.__POTENTIAL_MATRIX.T @ self.DMA_DUMMY[handle_name][-1])
         # return totalV
     
-    def get_final_V(self):
+    def get_final_V(self) -> [float]:
         return self.__POTENTIAL_MATRIX.T @ self.GetTotalV()
 
-    def GetHandleDuration(self,handle_name):
+    def GetHandleDuration(self,handle_name) -> int:
         return len(self.__MEMORY[handle_name])
 
-    def GetElectrodePositions(self):
+    def GetElectrodePositions(self) -> [float]:
         return [electrode.GetElectrodeCenter() for electrode in self.electrodes]
 
-    def GetLabelPositions(self):
+    def GetLabelPositions(self) -> [float]:
         return [int((electrode.GetElectrodeCenter()-self.position)/self.dx) for electrode in self.electrodes]
     
-    def GetMinorLabelPositions(self):
+    def GetMinorLabelPositions(self) -> [float]:
         ticks = []
         for electrode in self.electrodes:
             ticks.append((electrode.GetElectrodeStart()-self.position)/self.dx)
             ticks.append((electrode.GetElectrodeEnd()-self.position)/self.dx)
         return ticks
     
-    def GetElectrodeNames(self):
+    def GetElectrodeNames(self) -> [str]:
         return list(self.electrode_mapping.keys())
     
-    def GetElectrodePosition(self,electrode:str):
+    def GetElectrodePosition(self,electrode:str) -> float:
         return self.electrodes[self.electrode_mapping[electrode]].GetElectrodeCenter()
+    
+    def _GetElectrode(self,electrode:str) -> TElectrode:
+        return self.electrodes[self.electrode_mapping[electrode]]
+
 
 
     ########################## trapping functions ##########################
