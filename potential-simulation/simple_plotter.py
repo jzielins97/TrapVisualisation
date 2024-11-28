@@ -11,14 +11,15 @@ AEgIS_trap.Print()
 electrodes = AEgIS_trap.GetElectrodeNames()
 
 trap_wall = 190
-trap_floor = 180
-potential = {'P13':trap_wall,'P12':trap_floor,'P11':trap_floor,'P10':trap_floor,'P9':191.5,'P8':191.5}
-potentials = [potential]
+trap_floor = 190
+potential = {'P13':trap_wall,'P12':trap_floor,'P11':trap_floor,'P10':trap_floor,'P9':191.5,'P8':191.5,'HV3':-12000}
+potentials = [] # [potential]
 full_potential = {}
 for electrode in electrodes:
     if electrode == 'P10':
         break
-    full_potential[electrode] = trap_wall
+    # full_potential[electrode] = trap_wall
+    continue
 for key,value in potential.items():
     full_potential[key] = value
 potentials.append(full_potential)
@@ -37,7 +38,8 @@ ax.tick_params(which = "minor", bottom = False, left = False)
 ax.set_xlabel("electrode")
 ax.set_ylabel("voltage [V]") 
 ax.set_ylim(130,200)
-ax.set_xlim((AEgIS_trap.GetElectrodePosition('P7')-AEgIS_trap.position)/AEgIS_trap.dx,(AEgIS_trap.GetElectrodePosition('P14')-AEgIS_trap.position)/AEgIS_trap.dx)
+ax.set_xlim((AEgIS_trap.GetElectrodePosition('P7')-AEgIS_trap.position)/AEgIS_trap.dx,(AEgIS_trap.GetElectrodePosition('T1')-AEgIS_trap.position)/AEgIS_trap.dx)
+#P14
 plt.xticks(rotation=45)
 
 # plotting loop
@@ -48,7 +50,7 @@ for i,potential_map in enumerate(potentials):
         AEgIS_trap.SetElectrodeV(electrode,V)
     real_potential = AEgIS_trap.get_final_V()
     ax.stairs(real_potential,label=f'P13@{AEgIS_trap.GetElectrodeV("P13")} V')
-    p11_voltage_id = int((AEgIS_trap._GetElectrode('P11').GetElectrodeCenter()-AEgIS_trap.position)/AEgIS_trap.dx)
+    p11_voltage_id = int((AEgIS_trap._GetElectrode('T1').GetElectrodeCenter()-AEgIS_trap.position)/AEgIS_trap.dx)
     print("max voltage right of the P11:",np.max(real_potential[:p11_voltage_id]))
     print("voltate at the center of the P11:",real_potential[p11_voltage_id])
     print("maxvoltage left of the P12",np.max(real_potential[p11_voltage_id:]))

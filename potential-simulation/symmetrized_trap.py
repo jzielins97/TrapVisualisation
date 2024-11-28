@@ -19,10 +19,12 @@ def find_best_symmetric_potential(trap_wall:float = 190, trap_floor:float = 170,
         if electrode == 'P10':
             break
         full_wall_V[electrode] = trap_wall
+        # continue
     for key,value in symmetric_wall_V.items():
         AEgIS_trap.SetElectrodeV(key,value)
         full_wall_V[key] = value
     potentials = [full_wall_V]
+    potentials.append({electrode:v if electrode!='P13' else 0 for electrode,v in full_wall_V.items()})
 
     voltage_diff = trap_wall
     best_voltage = 0
@@ -83,20 +85,24 @@ def find_best_symmetric_potential(trap_wall:float = 190, trap_floor:float = 170,
         electrode_p8_V = AEgIS_trap.GetElectrodeV("P8")
         if i == 0:
             for axi in ax:
-                axi.stairs(real_potential,label=f'full wall',color='tab:blue') #color='blue'
+                axi.stairs(real_potential,label=f'full wall',color='k') #color='tab:blue'
+        elif i == 1:
+            for axi in ax:
+                axi.stairs(real_potential,label=f'full wall - pulse',linestyle='--',color='grey') #color='tab:blue'
         else:
             if verbose > 0:
                 print("++++++++++++++++")
                 print(f"Ploting #{i} {electrode_p8_V} V")
             for axi in ax:
-                axi.stairs(real_potential,label=f'P8@{electrode_p8_V} V',color='tab:orange')
+                axi.stairs(real_potential,label=f'P8@{electrode_p8_V} V',color='m') # tab:orange
+                # continue
             # pulsing loop
             if not include_pulsing:
                 continue
-            for pulse in range(1,8):
-                AEgIS_trap.SetElectrodeV('P13',trap_wall - pulse*0.5*(trap_wall-trap_floor))
+            for pulse in range(1,11):
+                AEgIS_trap.SetElectrodeV('P13',trap_wall - 0.1*pulse*trap_wall) # pulse*0.5*(trap_wall-trap_floor))
                 for axi in ax:
-                    axi.stairs(AEgIS_trap.get_final_V(),linestyle='--',label=f'pulsed P13 for -{0.5*pulse}*(wall-floor) V')
+                    axi.stairs(AEgIS_trap.get_final_V(),linestyle='--',label=f'pulsed P13 for - {0.1*pulse:.1f}*wall')# {0.5*pulse}*(wall-floor) V')
 
     ax[0].legend()
     if save:
@@ -106,7 +112,7 @@ def find_best_symmetric_potential(trap_wall:float = 190, trap_floor:float = 170,
 
 if __name__ == "__main__":
     
-    results = [find_best_symmetric_potential(trap_floor=trap_floor,trap_wall=190,save=False,plot=True)  for trap_floor in range(165,190,5)]
+    results = [find_best_symmetric_potential(trap_floor=trap_floor,trap_wall=190,save=False,plot=True,include_pulsing=True)  for trap_floor in range(165,190,5)]
     for res in results:
         print(res)
     
