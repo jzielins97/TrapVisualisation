@@ -112,11 +112,11 @@ def find_best_symmetric_potential(trap_wall:float = 190, trap_floor:float = 170,
 
 if __name__ == "__main__":
     
-    results = [find_best_symmetric_potential(trap_floor=trap_floor,trap_wall=190,save=False,plot=True,include_pulsing=True)  for trap_floor in range(165,190,5)]
-    for res in results:
-        print(res)
+    # results = [find_best_symmetric_potential(trap_floor=trap_floor,trap_wall=190,save=False,plot=True,include_pulsing=True)  for trap_floor in range(165,190,5)]
+    # for res in results:
+    #     print(res)
     
-    if False:
+    if True:
         results = [find_best_symmetric_potential(trap_floor=trap_floor,trap_wall=trap_wall,save=False,plot=False)  for trap_wall in range(170,190,5) for trap_floor in range(165,trap_wall)]
         wall_diff = []
         trap_depth = []
