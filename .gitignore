@@ -1,4 +1,6 @@
 **.gif
 **.mp4
-**.eps
-**.png
+**/**.eps
+**/**.png
+plots/**
+animations/**
