@@ -12,7 +12,7 @@ class TElectrode:
 
 
     def __str__(self)->str:
-        return f'Electrode {self.name:5} with {self.potential:4.2e} V from {self.position[0]:4.2E} to {self.position[1]:4.2E}'
+        return f'Electrode {self.name:5} with {self.potential:4.2e} V from {self.position[0]:5.2f} to {self.position[1]:5.2f}'
     
     def GetName(self):
         return self.name

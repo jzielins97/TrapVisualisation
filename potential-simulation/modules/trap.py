@@ -9,7 +9,7 @@ class TTrap():
     position:float=0 # inisitla position of the trap
     length:float=0 # length of the trap
     segments:int=2048 # total number of positions points 
-    dx:float=0.5 # distance between position points
+    dx:float=0.5 # distance between position points [mm]
     __TRAP_CONFIGS:{str:{str:[str]}}={} # configurations of the trap
     __POTENTIAL_MATRIX:[[float]]=[[]] # matrix for calculating the final potential
     __MEMORY:{str:[[float]]}={} # internal memory for trapping sequences
@@ -27,7 +27,7 @@ class TTrap():
             #     print(config_name)
             #     for key,item in config.items():
             #         print(f"\t{key}:{item}")
-
+        # print(self.__TRAP_CONFIGS)
         
         potential_matrix_path = os.path.join(script_dir, "ElectrodesPotentialMap.txt")
         GROUNDED_ELECTRODES = ['C1'] # ,'C16','C17'
@@ -36,26 +36,41 @@ class TTrap():
 
         self.electrodes.append(TElectrode("C0",position+0.0,13.5))
         self.electrodes.append(TElectrode("HV1",position+23.5,40.0))
-        self.electrodes.append(TElectrode("C1",position+73.5,27.5))
+        self.electrodes.append(TElectrode("C1",position+73.5,26.5))
         for i in range(2,6):
-            self.electrodes.append(TElectrode(f"C{i}",position+101.0 + (i-2)*30,30))
+            self.electrodes.append(TElectrode(f"C{i}",position+101.0 + (i-2)*30,29))
         for i in range(6,16):
-            self.electrodes.append(TElectrode(f"C{i}",position+221.0 + (i-6)*13.5,13.5))
+            self.electrodes.append(TElectrode(f"C{i}",position+221.0 + (i-6)*13.5,12.5))
         for i in range(16,19):
-            self.electrodes.append(TElectrode(f"C{i}", position+356.0 + (i-16)*30.0,30.0))
+            self.electrodes.append(TElectrode(f"C{i}", position+356.0 + (i-16)*30.0,29.0))
         self.electrodes.append(TElectrode("C19", position+446.0,27.5))
         self.electrodes.append(TElectrode("HV2",position+483.5,40.0))
-        self.electrodes.append(TElectrode("P1", position+533.5,24.0))
-        self.electrodes.append(TElectrode("P2", position+557.5,30.0))
+        self.electrodes.append(TElectrode("P1", position+533.5,23.0))
+        self.electrodes.append(TElectrode("P2", position+557.5,29.0))
         for i in range(3,13):
-            self.electrodes.append(TElectrode(f"P{i}",position+587.5+(i-3)*13.5,13.5))
-        self.electrodes.append(TElectrode("P13",position+722.5,30.0))
+            self.electrodes.append(TElectrode(f"P{i}",position+587.5+(i-3)*13.5,12.5))
+        self.electrodes.append(TElectrode("P13",position+722.5,29.0))
         self.electrodes.append(TElectrode("P14",position+752.5,24.0))
         self.electrodes.append(TElectrode("HV3",position+786.5,40))
-        self.electrodes.append(TElectrode("T1",position+836.5,27.5))
+        self.electrodes.append(TElectrode("T1",position+836.5,26.5))
         for i in range(2,6):
             self.electrodes.append(TElectrode(f"T{i}", position+864.0+(i-2)*40,40.0))
-        self.electrodes.append(TElectrode("T6",position+1024,40.0))
+        self.electrodes.append(TElectrode("T6",position+1024,41.0))
+
+
+        # 1T trap
+        # position_1T = self.electrodes[-1].GetElectrodeEnd() + 6.8
+        # self.electrodes.append(TElectrode("B0",position_1T,62.0))
+        # for i in range(1,8):
+        #     self.electrodes.append(TElectrode(f"B{i}",position_1T+62.95+(i-1)*(43),42.0))
+        # for i in range(8,11):
+        #     self.electrodes.append(TElectrode(f"B{i}",position_1T+363.95+(i-8)*16,15.0))
+        # for i in range(4,7):
+        #     self.electrodes.append(TElectrode(f"HV{i}",position_1T+411.95+(i-4)*17,15.0))
+        # for i in range(4):
+        #     self.electrodes.append(TElectrode(f"A{8-i}",position_1T+461.95+i*16,15.0))
+        # for i in range(4):
+        #     self.electrodes.append(TElectrode(f"A{4-i}",position_1T+525.95+i*8.5,7.5))
 
         self.length = self.electrodes[-1].GetElectrodeEnd() - self.electrodes[0].GetElectrodeStart()
 
@@ -102,13 +117,16 @@ class TTrap():
     def dma_playback(self, i, handle_name:str) -> [float]:
         for electrode_pair in self.__MEMORY[handle_name][i]:
             self.SetElectrodeV(electrode_pair['name'],electrode_pair['V'])
-        V = self.get_final_V
+        V = self.get_final_V()
         return V
         # totalV = [self.__POTENTIAL_MATRIX.T @ V for V in self.DMA_DUMMY[handle_name]]
         # for _ in range(frames_to_wait):
         #     totalV.append(self.__POTENTIAL_MATRIX.T @ self.DMA_DUMMY[handle_name][-1])
         # return totalV
     
+    '''
+    Get the potential V as a function of z with currently set potentials on electrodes.
+    '''
     def get_final_V(self) -> [float]:
         return self.__POTENTIAL_MATRIX.T @ self.GetTotalV()
 
@@ -117,23 +135,58 @@ class TTrap():
 
     def GetElectrodePositions(self) -> [float]:
         return [electrode.GetElectrodeCenter() for electrode in self.electrodes]
-
+    
+    '''
+    Returns positions for labels with names of electrdoes (middle of the electrode).
+    The values are returned as z position in mm for the line plots.
+    '''
+    def GetLabelPositions_mm(self) -> [float]:
+        return [electrode.GetElectrodeCenter() for electrode in self.electrodes]
+    
+    '''
+    Returns positions for labels with names of electrdoes (middle of the electrode).
+    The values are returned as integers for the stairs plot.
+    '''
     def GetLabelPositions(self) -> [float]:
         return [int((electrode.GetElectrodeCenter()-self.position)/self.dx) for electrode in self.electrodes]
+
+    '''
+    Returns minor ticks positions indicating start and end of each electrode.
+    The values are returned as z position in mm for the line plots.
+    '''
+    def GetMinorLabelPositions_mm(self) -> [float]:
+        ticks = []
+        for electrode in self.electrodes:
+            ticks.append(electrode.GetElectrodeStart())
+            ticks.append(electrode.GetElectrodeEnd())
+        return ticks
     
+    '''
+    Returns minor ticks positions indicating start and end of each electrode.
+    The values are returned as integers for the stairs plot.
+    '''
     def GetMinorLabelPositions(self) -> [float]:
         ticks = []
         for electrode in self.electrodes:
             ticks.append((electrode.GetElectrodeStart()-self.position)/self.dx)
             ticks.append((electrode.GetElectrodeEnd()-self.position)/self.dx)
         return ticks
-    
+
+    '''
+    Get list of labels of electrodes
+    '''
     def GetElectrodeNames(self) -> [str]:
         return list(self.electrode_mapping.keys())
     
+    '''
+    Get center of an electrode specified with a label
+    '''
     def GetElectrodePosition(self,electrode:str) -> float:
         return self.electrodes[self.electrode_mapping[electrode]].GetElectrodeCenter()
     
+    '''
+    Get TElectrode object with the specified electrode label
+    '''
     def _GetElectrode(self,electrode:str) -> TElectrode:
         return self.electrodes[self.electrode_mapping[electrode]]
 
@@ -161,8 +214,8 @@ class TTrap():
         # check if we are dividing by 0
         if steps == 0:
             steps = 1
-        if Vend > 160:
-            Vend = 160 # coerce
+        if Vend > 200:
+            Vend = 200 # coerce
         # calculate voltage step size
         dV = (Vend - Vstart)/steps
         # define counters for electrodes

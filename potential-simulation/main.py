@@ -319,9 +319,9 @@ def Pbar_ElectronCooling2_valve_py(animation:AnimationObject,trap:trap.TTrap,
     PrepareEloading(trap, "ptrap","ctrap")
 
     # ecooling thingy
-    animation.add_sequence("Ctrap_Eloading")
-    animation.add_sequence("Ctrap_Close")
-    animation.add_sequence("Ctrap_Predump_Slow")
+    # animation.add_sequence("Ctrap_Eloading")
+    # animation.add_sequence("Ctrap_Close")
+    # animation.add_sequence("Ctrap_Predump_Slow")
     animation.add_wait(1)
     animation.add_sequence("Ptrap_Eloading")
     animation.add_wait(1)
@@ -397,7 +397,7 @@ def HCI_pbar_calibration_py(animation:AnimationObject,trap:trap.TTrap,
     return f'HCI_pbar_calibration_py_eLoadFloor={Eloading_TrapFloor}V_eCoolFloor={Ecooling_TrapFloor}V_eCoolEndCap={Ecooling_TrapEndcap}V_eCoolLaunch={Ecooling_LaunchPotential}V_recPotential={Transfer_RecyclingPotential}V_tCharge={Eloading_TransferredSpaceCharge}'
 
 
-if __name__ == '__main__':
+def plot_specific_state():
     # parameters:
     AEgIS_trap = trap.TTrap(position=-1095)
     AEgIS_trap.Print()
@@ -410,21 +410,47 @@ if __name__ == '__main__':
     AEgIS_trap.SetElectrodeV("P8",Vwall)
     AEgIS_trap.SetElectrodeV("P9",Vwall)
     AEgIS_trap.SetElectrodeV("P10",Vfloor)
-    # AEgIS_trap.SetElectrodeV("P11",Vfloor)
-    # AEgIS_trap.SetElectrodeV("P12",Vfloor)
-    # AEgIS_trap.SetElectrodeV("P13",Vwall)
+    AEgIS_trap.SetElectrodeV("P11",Vfloor)
+    AEgIS_trap.SetElectrodeV("P12",Vfloor)
+    AEgIS_trap.SetElectrodeV("P13",Vwall)
     ani.plot_current_state()
 
+def plot_sequence_step():
+    # parameters:
+    AEgIS_trap = trap.TTrap(position=-1095)
+    AEgIS_trap.Print()
+    AEgIS_trap.SetEverythingToZero()
+    
+    ani = AnimationObject(AEgIS_trap,fps=100)
+    # file = HCI_pbar_calibration_py(ani,AEgIS_trap,Eloading_TrapFloor = 150.,Ecooling_TrapFloor = -10.0,Ecooling_TrapEndcap = -150.0,Ecooling_LaunchPotential = -70.0,Transfer_RecyclingPotential = -70.0,Eloading_TransferredSpaceCharge = 30)
+    file = Pbar_ElectronCooling2_valve_py(ani,AEgIS_trap,Eloading_TrapFloor = 150.,Ecooling_TrapFloor = -10.0,Ecooling_TrapEndcap = -150.0,Ecooling_LaunchPotential = -70.0,Transfer_RecyclingPotential = -70.0,Eloading_TransferredSpaceCharge = 30)
+    # file = HCI_CnD_eCool_py(ani,AEgIS_trap,NestedTrap_SqueezedTrapType = '2E_MCP',NestedTrap_Wall = 160,NestedTrap_TrapFloor = 90,Eloading_TrapFloor = 150.,Ecooling_TrapFloor = -10.0,Ecooling_TrapEndcap = -150.0,Ecooling_LaunchPotential = -70.0,Transfer_RecyclingPotential = -70.0,Eloading_TransferredSpaceCharge = 30)
+    # file = HCI_CatchAndDump_py(ani,AEgIS_trap,NestedTrap_SqueezedTrapType = '2E_MCP',NestedTrap_Wall = 160,NestedTrap_TrapFloor = 90)
+
+
+def animate_sequence():
+    # parameters:
+    AEgIS_trap = trap.TTrap(position=-1095)
+    AEgIS_trap.Print()
+    AEgIS_trap.SetEverythingToZero()
+    
+
+    ani = AnimationObject(AEgIS_trap,fps=100)
 
     # file = HCI_pbar_calibration_py(ani,AEgIS_trap,Eloading_TrapFloor = 150.,Ecooling_TrapFloor = -10.0,Ecooling_TrapEndcap = -150.0,Ecooling_LaunchPotential = -70.0,Transfer_RecyclingPotential = -70.0,Eloading_TransferredSpaceCharge = 30)
     # file = Pbar_ElectronCooling2_valve_py(ani,AEgIS_trap,Eloading_TrapFloor = 150.,Ecooling_TrapFloor = -10.0,Ecooling_TrapEndcap = -150.0,Ecooling_LaunchPotential = -70.0,Transfer_RecyclingPotential = -70.0,Eloading_TransferredSpaceCharge = 30)
     # file = HCI_CnD_eCool_py(ani,AEgIS_trap,NestedTrap_SqueezedTrapType = '2E_MCP',NestedTrap_Wall = 160,NestedTrap_TrapFloor = 90,Eloading_TrapFloor = 150.,Ecooling_TrapFloor = -10.0,Ecooling_TrapEndcap = -150.0,Ecooling_LaunchPotential = -70.0,Transfer_RecyclingPotential = -70.0,Eloading_TransferredSpaceCharge = 30)
-    # file = HCI_CatchAndDump_py(ani,AEgIS_trap,NestedTrap_SqueezedTrapType = '2E_MCP',NestedTrap_Wall = 160,NestedTrap_TrapFloor = 90)
-    # ani.animate(show=False,save=True,file=os.path.join(os.path.dirname(__file__),'animations',file))
+    file = HCI_CatchAndDump_py(ani,AEgIS_trap,NestedTrap_SqueezedTrapType = '2E_MCP',NestedTrap_Wall = 160,NestedTrap_TrapFloor = 90)
+    ani.animate(show=False,save=True,file=os.path.join(os.path.dirname(__file__),'animations',file))
+
+if __name__ == '__main__':
+    # plot_specific_state()
+    animate_sequence()
+    
 
 
 
-    exit(0)
+    # exit(0)
 
 
 

@@ -13,7 +13,7 @@ electrodes = AEgIS_trap.GetElectrodeNames()
 trap_wall = 190
 trap_floor = 190
 potential = {'P13':trap_wall,'P12':trap_floor,'P11':trap_floor,'P10':trap_floor,'P9':191.5,'P8':191.5,'HV3':-12000}
-potentials = [] # [potential]
+potentials = [potential]
 full_potential = {}
 for electrode in electrodes:
     if electrode == 'P10':
@@ -23,8 +23,8 @@ for electrode in electrodes:
 for key,value in potential.items():
     full_potential[key] = value
 potentials.append(full_potential)
-# for V in range(160,185,5):
-#     potentials.append({key:value if key != 'P13' else V for key,value in potential.items()})
+for V in range(160,185,5):
+    potentials.append({key:value if key != 'P13' else V for key,value in potential.items()})
 
 
 # prepare the plot
@@ -38,7 +38,7 @@ ax.tick_params(which = "minor", bottom = False, left = False)
 ax.set_xlabel("electrode")
 ax.set_ylabel("voltage [V]") 
 ax.set_ylim(130,200)
-ax.set_xlim((AEgIS_trap.GetElectrodePosition('P7')-AEgIS_trap.position)/AEgIS_trap.dx,(AEgIS_trap.GetElectrodePosition('T1')-AEgIS_trap.position)/AEgIS_trap.dx)
+# ax.set_xlim((AEgIS_trap.GetElectrodePosition('P7')-AEgIS_trap.position)/AEgIS_trap.dx,(AEgIS_trap.GetElectrodePosition('T1')-AEgIS_trap.position)/AEgIS_trap.dx)
 #P14
 plt.xticks(rotation=45)
 

@@ -43,22 +43,22 @@ class AnimationObject:
         title = self.ax.text(1000,450, f"{i}:{self.trapping_sequence[i]['iteration']}:{self.trapping_sequence[i]['name']}")
         # self.ax.set_title()
         line = self.ax.stairs(self.GetFrame(i))
-        plt.xticks(rotation=45)  
-
+        plt.xticks(rotation=45)
         return line, title,
 
     def animate(self,show=True,save=False,file='potential'):
         mpl.rcParams['animation.ffmpeg_path'] = r'C:\\Users\\jzielins\\ffmpeg\\bin\\ffmpeg.exe'
         # for i,val in enumerate(self.trapping_sequence):
         #     print(f"{i}->{val['name']}[{val['iteration']}]")
+        self.file = file
         ani = FuncAnimation(self.fig, self.__animate, interval=1000/self.fps, blit=True, repeat=True, frames=len(self.trapping_sequence),repeat_delay=500)
         if save: 
             print('Saving as mp4...')
             ani.save(file+'.mp4', dpi=150, writer=FFMpegWriter(fps=60))
             print('DONE')
-            print('Saving as gif...')
-            ani.save(file+'.gif', dpi=150, writer=PillowWriter(fps=self.fps))
-            print('DONE')
+            # print('Saving as gif...')
+            # ani.save(file+'.gif', dpi=150, writer=PillowWriter(fps=self.fps))
+            # print('DONE')
         if show:
             plt.show()
         return ani
@@ -77,6 +77,23 @@ class AnimationObject:
         # self.ax.text(1000,450, f"{i}:{self.trapping_sequence[i]['iteration']}:{self.trapping_sequence[i]['name']}")
         # self.ax.set_title()
         self.ax.stairs(self.trap.get_final_V())
+        plt.xticks(rotation=45)  
+
+        plt.show()
+
+    def plot_sequence_step(self,):
+        self.ax.set_xticks(self.labels_positions)
+        self.ax.set_xticklabels(self.labels)
+        self.ax.set_xticks(self.minor_labels_positions,minor=True)
+        self.ax.grid(axis='x',which='minor',linestyle = "dashed",linewidth = 0.5,alpha=0.5)
+        self.ax.tick_params(which = "minor", bottom = False, left = False)
+        self.ax.set_xlabel("electrode")
+        self.ax.set_ylabel("voltage [V]") 
+        self.ax.set_ylim(-500,500)
+        # self.title.set_text()
+        title = self.ax.text(1000,450, f"{i}:{self.trapping_sequence[i]['iteration']}:{self.trapping_sequence[i]['name']}")
+        # self.ax.set_title()
+        line = self.ax.stairs(self.GetFrame(i))
         plt.xticks(rotation=45)  
 
         plt.show()
